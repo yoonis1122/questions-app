@@ -26,7 +26,7 @@ export default function Result() {
       hasSaved.current = true;
       const saveResult = async () => {
         try {
-          await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/results`, {
+          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/results`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

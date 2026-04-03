@@ -14,7 +14,7 @@ export default function Quiz() {
   const [isAnswered, setIsAnswered] = useState(false);
 
   useEffect(() => {
-    fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions?section=${section}`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions?section=${section}`)
       .then(res => res.json())
       .then(data => {
         const shuffled = data.sort(() => 0.5 - Math.random());

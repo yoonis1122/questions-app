@@ -45,7 +45,7 @@ export default function Dashboard() {
 
   const fetchSections = async () => {
     try {
-      const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/sections`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/sections`);
       const data = await res.json();
       setSections(data);
       if (data.length > 0 && !activeTab) {
@@ -58,7 +58,7 @@ export default function Dashboard() {
 
   const fetchQuestions = async (sectionName) => {
     try {
-      const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions?section=${sectionName}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions?section=${sectionName}`);
       const data = await res.json();
       setQuestions(data);
     } catch (err) {
@@ -68,7 +68,7 @@ export default function Dashboard() {
 
   const fetchResults = async () => {
     try {
-      const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/results`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/results`);
       const data = await res.json();
       setResults(data);
     } catch (err) {
@@ -116,7 +116,7 @@ export default function Dashboard() {
       if (!payload.text) payload.text = undefined;
 
       if (sectionMode === 'edit' && editingId) {
-        const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions/${editingId}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -125,7 +125,7 @@ export default function Dashboard() {
         if (!res.ok) throw new Error(data.error || 'Failed to update question');
         toast.success('Question updated successfully!');
       } else {
-        const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -165,7 +165,7 @@ export default function Dashboard() {
   const handleDeleteQuestion = async (id) => {
     if (!window.confirm('Are you sure you want to delete this question?')) return;
     try {
-      const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/questions/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete question');
       toast.success('Question deleted successfully!');
       fetchQuestions(activeTab);
@@ -181,7 +181,7 @@ export default function Dashboard() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/sections`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/sections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSectionData)
@@ -202,7 +202,7 @@ export default function Dashboard() {
     if (!window.confirm(`Are you sure you want to delete the "${name}" section and ALL its questions?`)) return;
     
     try {
-      const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/sections/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/sections/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete section');
       toast.success('Section deleted successfully!');
       
@@ -218,7 +218,7 @@ export default function Dashboard() {
   const handleDeleteResult = async (id) => {
     if (!window.confirm('Are you sure you want to delete this result?')) return;
     try {
-      const res = await fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/results/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/results/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete result');
       toast.success('Result deleted successfully!');
       fetchResults();

@@ -9,7 +9,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`\${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/sections`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/sections`)
       .then(res => res.json())
       .then(data => {
         setSections(data);
