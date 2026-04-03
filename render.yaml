@@ -1,0 +1,40 @@
+services:
+  # 1. Backend Web Service
+  - type: web
+    name: questions-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: MONGODB_URI
+        sync: false # You will need to enter your actual MongoDB URL in the Render Dashboard
+
+  # 2. Main Frontend Static Site
+  - type: web
+    name: questions-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: questions-backend
+          property: url
+      # Add VITE_CLERK_PUBLISHABLE_KEY inside the Render dashboard if you use Clerk authentication
+
+  # 3. Admin Panel Static Site
+  - type: web
+    name: questions-admin
+    env: static
+    rootDir: admin
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: questions-backend
+          property: url
