@@ -8,14 +8,38 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (email === 'admin@gmail.com' && password === 'admin123') {
-      localStorage.setItem('adminToken', 'secret-demo-token');
-      toast.success('Logged in successfully');
-      navigate('/dashboard');
-    } else {
-      toast.error('Invalid email or password (use admin@gmail.com / admin123)');
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (res.ok) {
+        localStorage.setItem('adminToken', 'secret-demo-token');
+        toast.success('Logged in successfully');
+        navigate('/dashboard');
+        return;
+      }
+      
+      // Fallback local admin check
+      if (email === 'admin@gmail.com' && password === 'admin123') {
+        localStorage.setItem('adminToken', 'secret-demo-token');
+        toast.success('Logged in successfully (Fallback)');
+        navigate('/dashboard');
+        return;
+      }
+      
+      toast.error('Invalid email or password');
+    } catch (err) {
+      toast.error('Login failed. Ensure backend is running.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,9 +77,10 @@ export default function Login() {
           </div>
           <button 
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 hover:-translate-y-0.5 active:translate-y-0"
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-75 disabled:hover:translate-y-0"
           >
-            Sign In to Dashboard
+            {loading ? 'Signing In...' : 'Sign In to Dashboard'}
           </button>
         </form>
       </div>

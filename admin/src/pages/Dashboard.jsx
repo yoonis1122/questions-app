@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, PlusCircle, LayoutDashboard, BookOpen, Sun, Moon, Trash2, FolderPlus, Settings, Edit, Users, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { LogOut, PlusCircle, LayoutDashboard, BookOpen, Sun, Moon, Trash2, FolderPlus, Settings, Edit, Users, UserCog, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
 
@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [sections, setSections] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [results, setResults] = useState([]);
+  const [users, setUsers] = useState([]);
   
   const [activeTab, setActiveTab] = useState('');
   const [sectionMode, setSectionMode] = useState('list'); // 'list', 'create', 'edit'
@@ -30,16 +31,26 @@ export default function Dashboard() {
     description: ''
   });
 
+  const [newUserData, setNewUserData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user'
+  });
+  const [editingUserId, setEditingUserId] = useState(null);
+
   useEffect(() => {
     fetchSections();
   }, []);
 
   useEffect(() => {
-    if (activeTab && activeTab !== 'manage-sections' && activeTab !== 'results') {
+    if (activeTab && activeTab !== 'manage-sections' && activeTab !== 'results' && activeTab !== 'manage-users') {
       fetchQuestions(activeTab);
       setSectionMode('list');
     } else if (activeTab === 'results') {
       fetchResults();
+    } else if (activeTab === 'manage-users') {
+      fetchUsers();
     }
   }, [activeTab]);
 
@@ -73,6 +84,81 @@ export default function Dashboard() {
       setResults(data);
     } catch (err) {
       toast.error('Failed to load results');
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setUsers(data);
+    } catch (err) {
+      toast.error('Failed to load users');
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!newUserData.name || !newUserData.email) return toast.error('Name and email are required');
+    if (!editingUserId && !newUserData.password) return toast.error('Password is required for new users');
+    setLoading(true);
+    try {
+      const url = editingUserId 
+        ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/${editingUserId}`
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users`;
+      
+      const payload = { ...newUserData };
+      if (editingUserId && !payload.password) {
+        delete payload.password;
+      }
+
+      const res = await fetch(url, {
+        method: editingUserId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        try {
+          const errorData = JSON.parse(text);
+          throw new Error(errorData.error || `Failed to ${editingUserId ? 'update' : 'create'} user`);
+        } catch (parseErr) {
+          throw new Error(`Failed to ${editingUserId ? 'update' : 'create'} user (Server responded with ${res.status})`);
+        }
+      }
+      toast.success(editingUserId ? 'User updated successfully' : 'User created successfully');
+      setNewUserData({ name: '', email: '', password: '', role: 'user' });
+      setEditingUserId(null);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditUserClick = (user) => {
+    setNewUserData({
+      name: user.name,
+      email: user.email,
+      role: user.role || 'user',
+      password: ''
+    });
+    setEditingUserId(user._id);
+    const formElement = document.getElementById('user-form-container');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete user');
+      toast.success('User deleted successfully!');
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.message);
     }
   };
 
@@ -288,6 +374,17 @@ export default function Dashboard() {
               <Settings className={`w-5 h-5 ${activeTab === 'manage-sections' ? 'text-emerald-200' : ''}`} />
               <span className="font-medium text-left truncate">Manage Sections</span>
             </button>
+            <button
+              onClick={() => setActiveTab('manage-users')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 outline-none ${
+                activeTab === 'manage-users'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
+                : 'text-slate-400 hover:bg-slate-800 hover:text-blue-400'
+              }`}
+            >
+              <UserCog className={`w-5 h-5 ${activeTab === 'manage-users' ? 'text-blue-200' : ''}`} />
+              <span className="font-medium text-left truncate">Manage Users</span>
+            </button>
           </div>
         </nav>
       </aside>
@@ -299,7 +396,8 @@ export default function Dashboard() {
         <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-4 flex justify-between items-center shadow-sm z-10 shrink-0">
           <h2 className="text-xl font-bold tracking-tight">
             {activeTab === 'manage-sections' ? 'Manage Section Categories' : 
-             activeTab === 'results' ? 'Player Results & Leaderboard' : (
+             activeTab === 'results' ? 'Player Results & Leaderboard' : 
+             activeTab === 'manage-users' ? 'Manage Users' : (
               <span className="capitalize">{activeTab} Section</span>
             )}
           </h2>
@@ -391,6 +489,141 @@ export default function Dashboard() {
                       <p className="text-slate-500 col-span-2 text-center py-4">No sections available.</p>
                     )}
                   </div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'manage-users' ? (
+            <div className="max-w-4xl mx-auto space-y-8 fade-in zoom-in-95 duration-500">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-black/20 border border-slate-100 dark:border-slate-800 overflow-hidden">
+                <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold">{editingUserId ? 'Edit User' : 'Create New User'}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{editingUserId ? 'Update user details below' : 'Add a new user manually'}</p>
+                  </div>
+                  <UserCog className="w-8 h-8 text-blue-500 dark:text-blue-400 opacity-80" />
+                </div>
+                <form onSubmit={handleCreateUser} className="p-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="user-form-container">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Name <span className="text-rose-500">*</span></label>
+                      <input 
+                        type="text"
+                        value={newUserData.name}
+                        onChange={(e) => setNewUserData({...newUserData, name: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Email <span className="text-rose-500">*</span></label>
+                      <input 
+                        type="email"
+                        value={newUserData.email}
+                        onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Password {editingUserId ? '' : <span className="text-rose-500">*</span>}</label>
+                      <input 
+                        type="password"
+                        value={newUserData.password}
+                        onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                        placeholder={editingUserId ? "Leave blank to keep current" : "••••••••"}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Role <span className="text-rose-500">*</span></label>
+                      <select 
+                        value={newUserData.role}
+                        onChange={(e) => setNewUserData({...newUserData, role: e.target.value})}
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-4 gap-3">
+                    {editingUserId && (
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setEditingUserId(null);
+                          setNewUserData({ name: '', email: '', password: '', role: 'user' });
+                        }}
+                        className="py-3 px-6 rounded-xl font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button 
+                      type="submit"
+                      disabled={loading}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-blue-600/20 outline-none"
+                    >
+                      {loading ? 'Saving...' : (editingUserId ? 'Update User' : 'Create User')}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-black/20 border border-slate-100 dark:border-slate-800 overflow-hidden">
+                <div className="bg-slate-50 dark:bg-slate-800/50 px-8 py-6 border-b border-slate-100 dark:border-slate-800">
+                  <h3 className="text-lg font-bold">Existing Users</h3>
+                </div>
+                <div className="p-4 overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 text-sm uppercase text-slate-500 dark:text-slate-400">
+                        <th className="p-4 font-semibold">Name</th>
+                        <th className="p-4 font-semibold">Email</th>
+                        <th className="p-4 font-semibold">Role</th>
+                        <th className="p-4 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {users.length > 0 ? users.map((user) => (
+                        <tr key={user._id} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="p-4 font-medium whitespace-nowrap text-slate-800 dark:text-slate-200">
+                            {user.name}
+                          </td>
+                          <td className="p-4 text-slate-500 dark:text-slate-400">
+                            {user.email}
+                          </td>
+                          <td className="p-4">
+                            <span className="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-xs font-semibold uppercase tracking-wider">
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right whitespace-nowrap">
+                            <button
+                              onClick={() => handleEditUserClick(user)}
+                              className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors inline-block mr-2"
+                              title="Edit User"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user._id)}
+                              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors inline-block"
+                              title="Delete User"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="4" className="p-8 text-center text-slate-500 dark:text-slate-400">
+                            No users available.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
